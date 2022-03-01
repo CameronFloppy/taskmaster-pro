@@ -13,6 +13,7 @@ var createTask = function(taskText, taskDate, taskList) {
   // append span and p element to parent li
   taskLi.append(taskSpan, taskP);
 
+  auditTask(taskLi);
 
   // append to ul list on the page
   $("#list-" + taskList).append(taskLi);
@@ -81,24 +82,24 @@ $(".list-group").on("blur", "textarea", function() {
 })
 
 $(".list-group").on("click", "span", function() {
-  let date = $(this)
-    .text()
-    .trim();
+  let date = $(this).text().trim();
   
-  let dateInput = $("<input>")
-    .attr("type", "text")
-    .addClass("form-control")
-    .val(date);
+  let dateInput = $("<input>").attr("type", "text").addClass("form-control").val(date);
 
   $(this).replaceWith(dateInput);
 
-  dateInput.trigger("focus")
+  dateInput.datepicker({
+    minDate: 1,
+    onClose: function() {
+      $(this).trigger("change");
+    }
+  });
+
+  dateInput.trigger("focus");
 })
 
-$(".list-group").on("blur", "input[type='text']", function() {
-  var date = $(this)
-    .val()
-    .trim()
+$(".list-group").on("change", "input[type='text']", function() {
+  var date = $(this).val().trim()
   
   var status = $(this)
     .closest(".list-group")
@@ -112,11 +113,11 @@ $(".list-group").on("blur", "input[type='text']", function() {
   tasks[status][index].date = date;
   saveTasks();
 
-  let taskSpan = $("<span>")
-    .addClass("badge badge-primary badge-pill")
-    .text(date);
+  let taskSpan = $("<span>").addClass("badge badge-primary badge-pill").text(date);
 
   $(this).replaceWith(taskSpan);
+
+  auditTask($(taskSpan).closest(".list-group-item"));
 })
 
 
@@ -224,7 +225,26 @@ $("#trash").droppable({
   out: function(event, ui) {
 
   }
-})
+});
+
+$("#modalDueDate").datepicker({
+  minDate: 1
+});
+
+function auditTask(taskEl) {
+  let date = $(taskEl).find("span").text().trim();
+
+  let time = moment(date, "L").set("hour", 17);
+
+  $(taskEl).removeClass("list-group-item-warning list-group-item-danger");
+
+  if(moment().isAfter(time)) {
+    $(taskEl).addClass("list-group-item-danger");
+  }
+  else if (Math.abs(moment().diff(time, "days")) <= 2) {
+    $(taskEl).addClass("list-group-item-warning");
+  }
+}
 // load tasks for the first time
 loadTasks();
 
